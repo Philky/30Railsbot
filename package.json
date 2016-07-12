@@ -1,0 +1,26 @@
+{
+  "name": "30Railsbot",
+  "version": "1.0.0",
+  "description": "A chat bot for slack that plays the 30 rails game.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Philky/30Railsbot.git"
+  },
+  "keywords": [
+    "30",
+    "Rails"
+  ],
+  "author": "Philky",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Philky/30Railsbot/issues"
+  },
+  "homepage": "https://github.com/Philky/30Railsbot",
+  "dependencies": {
+    "slackbots": "^0.5.1"
+  }
+}
