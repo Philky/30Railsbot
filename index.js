@@ -29,6 +29,8 @@ var FatController = {
 		clearTimeout(this.timeout);
 		if (options) {
 			this.interval = options.interval;
+		} else {
+			this.interval = 10 * 60 * 1000; // Default to 10 minutes
 		}
 		var text = '*Setting up a new game!*\n';
 		text += 'To play this game, you will need a pen or pencil, and to download and print the 30 rails map from here: ' +
