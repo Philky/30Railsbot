@@ -1,6 +1,6 @@
 var SlackBot = require('slackbots');
 var Railbot = new SlackBot({
-	token: 'TOKEN HERE',
+	token: '',
 	name: '30railsbot',
 });
 var channelName = '30-rails';
@@ -13,27 +13,94 @@ Railbot.on('start', function(data) {
 
 var FatController = {
 	turn: 1,
-	totalTurns: 5,
+	totalTurns: 30,
 	timeout: null,
-	interval: 5000,
+	interval: 10 * 60 * 1000, // Default to 10 minutes
+	setupInstructionsInterval: 5000,
 	inProgress: false,
 	channelParams: {
 		icon_emoji: ':monorail:',
 		'as_user': false,
 	},
-	init: function() {
+	init: function(options) {
+		var self = this;
 		// Reset everything
 		this.turn = 1;
 		clearTimeout(this.timeout);
-		var text = '*Setting up a new game!*';
+		if (options) {
+			this.interval = options.interval;
+		}
+		var text = '*Setting up a new game!*\n';
+		text += 'To play this game, you will need a pen or pencil, and to download and print the 30 rails map from here: ' +
+			'https://boardgamegeek.com/boardgame/200551/30-rails';
+		this.postMessage(text);
+		setTimeout(function() {
+			self.doSetupAndStart(1);
+		}, 2000);
+	},
+	doSetupAndStart(step) {
+		var self = this;
+		var text = null;
+		if (step === 1) {
+			text = '*Step 1: Add mountains.*\n';
+			text += 'First you need to place 5 mountains on your map.';
+			text += ' Mountains are represented via a chevron symbol "^".\n';
+			for (var i = 1; i < 6; i++) {
+				text += 'Place mountain ' + i + ' at *X: ' + 
+					this.rollDice() + ', Y: ' + 
+					this.rollDice() + '*\n';
+			}
+			setTimeout(function() {
+				self.doSetupAndStart(2);
+			}, this.setupInstructionsInterval);
+		} else if (step === 2) {
+			text = '*Step 2: Add mine.*\n';
+			text += 'Next select one space that is orthoganally adjacent to a mountain ' + 
+				'(immediately north, south, east or west), ' +
+				'and write the letter "M" in that space. This represents a mine.';
+			setTimeout(function() {
+				self.doSetupAndStart(3);
+			}, this.setupInstructionsInterval);
+		} else if (step === 3) {
+			text = '*Step 3: Add stations.*\n';
+			text += 'Write each of the numbers from 1 to 4 in one of the grey squares around' +
+				' the edge of the map. One number must be written on each of the four sides' +
+				' of the map. Each number represents a station. You will score more for' +
+				' connecting the higher numbered stations.';
+			setTimeout(function() {
+				self.doSetupAndStart(4);
+			}, this.setupInstructionsInterval);
+		} else if (step === 4) {
+			text = '*Step 4: Add bonus square.*\n';
+			text += 'Finally, highlight one "bonus" square on the map. This may be marked by lightly shading; ' +
+				'by marking the corner, or by drawing around the outline of a sqaure.';
+			setTimeout(function() {
+				self.doSetupAndStart(5);
+			}, this.setupInstructionsInterval);
+		} else if (step === 5) {
+			text = '*Overrides.*\n';
+			text += 'Twice during the game you may override the rolled value of a die and use any value of your ' +
+				'choice. This may be done once for the white die and once for the coloured die. The two overrides ' +
+				'may both be done on the same turn, or each on separate turns.\n' +
+				'When an override is used, cross out the corresponding die symbol in the "Overrides" ' +
+				'section of the board.';
+			setTimeout(function() {
+				self.doSetupAndStart();
+			}, this.setupInstructionsInterval);
+		} else {
+			// Start the game!
+			this.inProgress = true;
+			var minutes = this.interval / 1000 / 60;
+			text = '*Starting game, Good luck! Turns will happen every ' + minutes + ' minutes*\n';
+			setTimeout(function() {
+				self.doTurn();
+			}, 2000);
+		}
 		this.postMessage(text);
 	},
-	startGame: function() {
+	startGame: function(options) {
 		// Init
-		this.init();
-		// Start the game!
-		this.prepareNextTurn();
-		this.inProgress = true;
+		this.init(options);
 	},
 	endGame: function(forced) {
 		clearTimeout(this.timeout);
@@ -72,14 +139,14 @@ var FatController = {
 	showHelpText: function() {
 		var text = '*How to use the 30 rails bot:*\n' +
 			'```' +
-			'- start: begins a new game.\n' +
-			'- stop: stops the current game\n' + 
-			'- pause: pauses the current game\n' +
-			'- resume: pauses the current game\n' +
-			'- next: forces the next turn to happen\n' +
-			'- help: shows this help text\n' +
+			'start: begins a new game. Default turn interval is ' + this.interval / 1000 / 60 + ' minutes\n' +
+			'    -t <interval> : Start a game specifying the turn interval in minutes\n' +
+			'stop: stops the current game\n' + 
+			'pause: pauses the current game\n' +
+			'resume: resumes the current game\n' +
+			'next: forces the next turn to happen\n' +
+			'help: shows this help text\n' +
 			'```';
-
 		this.postMessage(text);
 	},
 	postMessage: function(text) {
@@ -94,10 +161,8 @@ var FatController = {
 			return;
 		}
 		var text = '*Turn ' + this.turn + '*\n' +
-			'```' +
-			'White dice: ' + this.rollDice() + '\n' +
-			'Red dice: ' + this.rollDice() +
-			'```';
+			'Row / Column: ' + this.rollDice() + '\n' +
+			'Track type: :30rails-' + this.rollDice() + ':';
 		this.postMessage(text);
 		this.turn++;
 		this.prepareNextTurn();
@@ -113,6 +178,12 @@ var FatController = {
 Railbot.on('message', function(message) {
 	if (message.text === 'start') {
 		FatController.startGame();
+	} else if (message.text && message.text.indexOf('start -t') !== -1) {
+		var options = {};
+		var split = message.text.split('-t');
+		// More switches, setup start options
+		options.interval = split[1] * 60 * 1000;
+		FatController.startGame(options);
 	}
 	if (message.text === 'pause') {
 		FatController.pauseGame();
