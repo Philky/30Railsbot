@@ -48,8 +48,8 @@ var FatController = {
 			text += 'First you need to place 5 mountains on your map.';
 			text += ' Mountains are represented via a chevron symbol "^".\n';
 			for (var i = 1; i < 6; i++) {
-				text += 'Place mountain ' + i + ' at *X: ' + 
-					this.rollDice() + ', Y: ' + 
+				text += 'Place mountain ' + i + ' at *Row: ' + 
+					i + ', Column: ' + 
 					this.rollDice() + '*\n';
 			}
 			setTimeout(function() {
@@ -158,7 +158,7 @@ var FatController = {
 		if (!this.inProgress) {
 			return;
 		}
-		if (this.turn > this.totalTurns) {
+		if (this.turn >= this.totalTurns) {
 			this.endGame();
 			return;
 		}
