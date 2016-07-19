@@ -15,7 +15,7 @@ You can downloaded the print out to play from: https://boardgamegeek.com/boardga
 	* :30rails-6:
 3. Create a new 'Bot' custom integration in slack.
 4. Edit the index.js file, and at the top add the API token from the newly created bot near the top of the file.
-5. Create a new channel in slack called '30-rails', or edit the channel name in index.js to one of your choosing.
+5. Create a new channel in slack called '30-rails', or edit the channel name in the top of index.js to one of your choosing.
 6. Type `node index.js` to start the bot.
 
 ## Usage

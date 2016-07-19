@@ -1,16 +1,31 @@
+/**
+ * Config
+ */
+var token = '';
+var channelName = '30-rails';
+var channelParams = {
+	icon_emoji: ':monorail:',
+	'as_user': false,
+};
+
+/**
+ * 30 Rails bot
+ */
 var SlackBot = require('slackbots');
 var Railbot = new SlackBot({
-	token: '',
+	token: token,
 	name: '30railsbot',
 });
-var channelName = '30-rails';
 
 Railbot.on('start', function(data) {
 	var text = '*30 Rails bot ready to choo choo!*\n' +
 		'Type `help` to see game options, or `start` to being a new game';
-	Railbot.postMessageToChannel(channelName, text);
+	Railbot.postMessageToChannel(channelName, text, channelParams);
 });
 
+/**
+ * Main controller code
+ */
 var FatController = {
 	turn: 1,
 	totalTurns: 30,
@@ -18,10 +33,6 @@ var FatController = {
 	interval: 10 * 60 * 1000, // Default to 10 minutes
 	setupInstructionsInterval: 5000,
 	inProgress: false,
-	channelParams: {
-		icon_emoji: ':monorail:',
-		'as_user': false,
-	},
 	init: function(options) {
 		var self = this;
 		// Reset everything
@@ -43,16 +54,20 @@ var FatController = {
 	doSetupAndStart(step) {
 		var self = this;
 		var text = null;
+		clearTimeout(this.timeout);
 		if (step === 1) {
 			text = '*Step 1: Add mountains.*\n';
 			text += 'First you need to place 5 mountains on your map.';
 			text += ' Mountains are represented via a chevron symbol "^".\n';
+			var rows = [1,2,3,4,5,6];
+			var rowToRemove = this.rollDice() - 1;
+			rows.splice(rowToRemove, 1);
 			for (var i = 1; i < 6; i++) {
 				text += 'Place mountain ' + i + ' at *Row: ' + 
-					i + ', Column: ' + 
+					rows[i - 1] + ', Column: ' + 
 					this.rollDice() + '*\n';
 			}
-			setTimeout(function() {
+			this.timeout = setTimeout(function() {
 				self.doSetupAndStart(2);
 			}, this.setupInstructionsInterval);
 		} else if (step === 2) {
@@ -60,7 +75,7 @@ var FatController = {
 			text += 'Next select one space that is orthoganally adjacent to a mountain ' + 
 				'(immediately north, south, east or west), ' +
 				'and write the letter "M" in that space. This represents a mine.';
-			setTimeout(function() {
+			this.timeout = setTimeout(function() {
 				self.doSetupAndStart(3);
 			}, this.setupInstructionsInterval);
 		} else if (step === 3) {
@@ -69,14 +84,14 @@ var FatController = {
 				' the edge of the map. One number must be written on each of the four sides' +
 				' of the map. Each number represents a station. You will score more for' +
 				' connecting the higher numbered stations.';
-			setTimeout(function() {
+			this.timeout = setTimeout(function() {
 				self.doSetupAndStart(4);
 			}, this.setupInstructionsInterval);
 		} else if (step === 4) {
 			text = '*Step 4: Add bonus square.*\n';
 			text += 'Finally, highlight one "bonus" square on the map. This may be marked by lightly shading; ' +
 				'by marking the corner, or by drawing around the outline of a sqaure.';
-			setTimeout(function() {
+			this.timeout = setTimeout(function() {
 				self.doSetupAndStart(5);
 			}, this.setupInstructionsInterval);
 		} else if (step === 5) {
@@ -86,7 +101,7 @@ var FatController = {
 				'may both be done on the same turn, or each on separate turns.\n' +
 				'When an override is used, cross out the corresponding die symbol in the "Overrides" ' +
 				'section of the board.';
-			setTimeout(function() {
+			this.timeout = setTimeout(function() {
 				self.doSetupAndStart();
 			}, this.setupInstructionsInterval);
 		} else {
@@ -94,7 +109,7 @@ var FatController = {
 			this.inProgress = true;
 			var minutes = this.interval / 1000 / 60;
 			text = '*Starting game, Good luck! Turns will happen every ' + minutes + ' minutes*\n';
-			setTimeout(function() {
+			this.timeout = setTimeout(function() {
 				self.doTurn();
 			}, 2000);
 		}
@@ -152,20 +167,20 @@ var FatController = {
 		this.postMessage(text);
 	},
 	postMessage: function(text) {
-		Railbot.postMessageToChannel(channelName, text, this.channelParams);
+		Railbot.postMessageToChannel(channelName, text, channelParams);
 	},
 	doTurn: function() {
 		if (!this.inProgress) {
-			return;
-		}
-		if (this.turn >= this.totalTurns) {
-			this.endGame();
 			return;
 		}
 		var text = '*Turn ' + this.turn + '*\n' +
 			'Row / Column: ' + this.rollDice() + '\n' +
 			'Track type: :30rails-' + this.rollDice() + ':';
 		this.postMessage(text);
+		if (this.turn >= this.totalTurns) {
+			this.endGame();
+			return;
+		}
 		this.turn++;
 		this.prepareNextTurn();
 	},
